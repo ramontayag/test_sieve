@@ -1,0 +1,28 @@
+PATH
+  remote: ..
+  specs:
+    test_sieve (1.0.0)
+      json (>= 3.1, < 4)
+      psych (>= 4, < 6)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    date (3.6.0)
+    json (3.1.0)
+    minitest (5.25.4)
+    psych (5.5.0)
+      date
+      stringio
+    stringio (3.2.0)
+
+PLATFORMS
+  ruby
+  x86_64-linux
+
+DEPENDENCIES
+  minitest (= 5.25.4)
+  test_sieve!
+
+BUNDLED WITH
+   2.6.9

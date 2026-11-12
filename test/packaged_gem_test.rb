@@ -5,6 +5,7 @@ require "tmpdir"
 require "open3"
 require "rbconfig"
 require "bundler"
+require "json"
 
 class PackagedGemTest < Minitest::Test
   def test_installed_gem_runs_the_public_contract_outside_the_checkout
@@ -26,6 +27,8 @@ class PackagedGemTest < Minitest::Test
           installed = Gem.loaded_specs.fetch("test_sieve").full_gem_path
           abort "loaded from checkout" unless installed.start_with?(#{home.inspect} + "/")
           abort "wrong version" unless TestSieve::VERSION == "1.0.0"
+          abort "base API loaded Rails" if defined?(Rails)
+          abort "base API loaded Minitest" if defined?(Minitest)
           abort "legacy namespace loaded" if Object.const_defined?(:TestSelection) || Object.const_defined?(:TestOwnership)
           abort "wrong license" unless Gem.loaded_specs.fetch("test_sieve").license == "MIT"
           %w[ LICENSE.txt docs/execution-verification.md ].each do |path|
@@ -35,6 +38,33 @@ class PackagedGemTest < Minitest::Test
         File.write(File.join(directory, "public_api_test.rb"), script)
         output = run_command(environment, directory, RbConfig.ruby, "public_api_test.rb")
         assert_match(/7 runs, \d+ assertions, 0 failures, 0 errors, 0 skips/, output)
+
+        help = run_command(environment, directory, RbConfig.ruby, File.join(home, "bin/test-sieve"), "--help")
+        assert_includes help, "select"
+        assert_includes help, "run"
+        File.write(File.join(directory, "adapter_test.rb"), <<~RUBY)
+          require "minitest/autorun"
+          require "test_sieve/minitest"
+          TestSieve::Minitest.install!(outcome_output: "outcomes.jsonl", timing_output: "timings.json", suite: "unit")
+          class AdapterTest < Minitest::Test
+            def test_packaged_reporters_record_a_real_test
+              assert_equal 4, 2 + 2
+            end
+          end
+        RUBY
+        output = run_command(environment, directory, RbConfig.ruby, "adapter_test.rb")
+        assert_match(/1 runs?, \d+ assertions?, 0 failures, 0 errors, 0 skips/, output)
+        outcomes = File.readlines(File.join(directory, "outcomes.jsonl")).map { |line| JSON.parse(line) }
+        assert_equal %w[run_start test_result run_end], outcomes.map { |record| record.fetch("type") }
+        assert_equal "pass", outcomes[1].fetch("outcome")
+        assert_equal true, outcomes.last.fetch("completed")
+        assert_equal 1, JSON.parse(File.read(File.join(directory, "timings.json"))).fetch("test_count")
+
+        readme_contract = File.read(File.join(__dir__, "readme_test.rb"))
+          .sub('ROOT = File.expand_path("..", __dir__)', 'ROOT = Gem::Specification.find_by_name("test_sieve").full_gem_path')
+        File.write(File.join(directory, "readme_test.rb"), readme_contract)
+        output = run_command(environment, directory, RbConfig.ruby, "readme_test.rb")
+        assert_match(/1 runs?, \d+ assertions?, 0 failures, 0 errors, 0 skips/, output)
       end
     end
   end

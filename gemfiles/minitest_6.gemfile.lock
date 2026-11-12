@@ -1,0 +1,47 @@
+PATH
+  remote: ..
+  specs:
+    test_sieve (1.0.0)
+      json (>= 3.1, < 4)
+      psych (>= 4, < 6)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    date (3.6.0)
+    drb (2.2.3)
+    json (3.1.0)
+    minitest (6.1.0)
+      drb (~> 2.0)
+      prism (>= 1.5, < 3)
+    prism (2.1.0)
+    prism (2.1.0-aarch64-linux-gnu)
+    prism (2.1.0-aarch64-linux-musl)
+    prism (2.1.0-arm-linux-gnu)
+    prism (2.1.0-arm-linux-musl)
+    prism (2.1.0-arm64-darwin)
+    prism (2.1.0-x86_64-darwin)
+    prism (2.1.0-x86_64-linux-gnu)
+    prism (2.1.0-x86_64-linux-musl)
+    psych (5.5.0)
+      date
+      stringio
+    stringio (3.2.0)
+
+PLATFORMS
+  aarch64-linux-gnu
+  aarch64-linux-musl
+  arm-linux-gnu
+  arm-linux-musl
+  arm64-darwin
+  ruby
+  x86_64-darwin
+  x86_64-linux-gnu
+  x86_64-linux-musl
+
+DEPENDENCIES
+  minitest (~> 6.1)
+  test_sieve!
+
+BUNDLED WITH
+   2.6.9
