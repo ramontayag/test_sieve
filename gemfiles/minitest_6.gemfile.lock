@@ -15,14 +15,6 @@ GEM
       drb (~> 2.0)
       prism (>= 1.5, < 3)
     prism (2.1.0)
-    prism (2.1.0-aarch64-linux-gnu)
-    prism (2.1.0-aarch64-linux-musl)
-    prism (2.1.0-arm-linux-gnu)
-    prism (2.1.0-arm-linux-musl)
-    prism (2.1.0-arm64-darwin)
-    prism (2.1.0-x86_64-darwin)
-    prism (2.1.0-x86_64-linux-gnu)
-    prism (2.1.0-x86_64-linux-musl)
     psych (5.5.0)
       date
       stringio
@@ -41,6 +33,7 @@ PLATFORMS
 
 DEPENDENCIES
   minitest (~> 6.1)
+  prism (>= 1.5, < 3)
   test_sieve!
 
 BUNDLED WITH
