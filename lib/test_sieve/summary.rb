@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module TestSelection
+module TestSieve
   class Summary
     def initialize(report)
       @report = report

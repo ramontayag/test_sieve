@@ -11,8 +11,8 @@ begin
   end.parse!
   raise ArgumentError, "unexpected arguments" unless ARGV.empty?
   raise ArgumentError, "comparison must be pr or push" unless %w[ pr push ].include?(options[:comparison])
-  puts JSON.generate(TestOwnership::Selector.new(**options, policy: FixtureProject::POLICY).call)
-rescue ArgumentError, OptionParser::ParseError, TestOwnership::Selector::Unavailable => error
+  puts JSON.generate(TestSieve::Selector.new(**options, policy: FixtureProject::POLICY).call)
+rescue ArgumentError, OptionParser::ParseError, TestSieve::Selector::Unavailable => error
   warn "bin/select-affected-tests: #{error.message}"
   exit 1
 end

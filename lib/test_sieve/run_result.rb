@@ -6,7 +6,7 @@ require "json"
 require_relative "comparison"
 require_relative "shard_evidence"
 
-module TestSelection
+module TestSieve
   # Reads the records one browser-test run produced and checks that the run
   # covered exactly the list it was asked to cover.
   #

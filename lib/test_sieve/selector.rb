@@ -2,16 +2,16 @@
 
 require "digest"
 require "open3"
-require_relative "validator"
+require_relative "ownership_validator"
 
-module TestOwnership
+module TestSieve
   class Selector
     class Unavailable < StandardError; end
 
     GLOB_FLAGS = File::FNM_PATHNAME | File::FNM_EXTGLOB
 
     def self.rules_digest
-      TestSelection.engine_digest
+      TestSieve.engine_digest
     end
 
     def initialize(root:, base:, head:, comparison:, policy:)
@@ -65,11 +65,11 @@ module TestOwnership
       end
 
       def policy_at(sha, files, label)
-        raise Validator::Invalid, "missing regular manifest" unless files.include?(@policy.manifest_path)
+        raise OwnershipValidator::Invalid, "missing regular manifest" unless files.include?(@policy.manifest_path)
         content = git("show", "#{sha}:#{@policy.manifest_path}")
         digest = Digest::SHA256.hexdigest(content)
-        [ Validator.new(content:, files:, policy: @policy).call, digest ]
-      rescue Validator::Invalid, Unavailable
+        [ OwnershipValidator.new(content:, files:, policy: @policy).call, digest ]
+      rescue OwnershipValidator::Invalid, Unavailable
         @reasons << "#{label}_policy_invalid"
         [ nil, digest ]
       end
@@ -163,7 +163,7 @@ module TestOwnership
           "requested_base_sha" => @requested_base_sha, "base_sha" => @base_sha, "source_sha" => @head_sha,
           "ownership_digest" => head_digest, "base_ownership_digest" => base_digest,
           "rules_digest" => self.class.rules_digest,
-          "engine_version" => TestSelection::VERSION, "policy_digest" => @policy.digest,
+          "engine_version" => TestSieve::VERSION, "policy_digest" => @policy.digest,
           "changed_paths" => changed, "affected_owners" => @affected.sort,
           "unit_files" => unit, "system_files" => system
         }

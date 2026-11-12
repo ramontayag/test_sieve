@@ -4,8 +4,8 @@ require "pathname"
 require "yaml"
 require "set"
 
-module TestOwnership
-  class Validator
+module TestSieve
+  class OwnershipValidator
     class Invalid < StandardError; end
 
     def initialize(policy:, root: nil, manifest_path: nil, content: nil, files: nil)

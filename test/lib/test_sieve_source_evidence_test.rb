@@ -20,7 +20,7 @@ require_relative "../support/project"
 #   * An unowned result points outside the repository (a gem, for example).
 #     The result is real evidence too, but it cannot be attributed to any file,
 #     so it cannot satisfy file coverage.
-class TestSelectionSourceEvidenceTest < Minitest::Test
+class TestSieveSourceEvidenceTest < Minitest::Test
   ROOT = File.expand_path("../..", __dir__)
 
   def setup
@@ -237,7 +237,7 @@ class TestSelectionSourceEvidenceTest < Minitest::Test
       failure = report.dig("results", "system").values.flatten.find { |record| record["outcome"] == "fail" }
       assert_equal "screenshot differs", failure.fetch("error_message")
       assert_includes failure.dig("screenshot", "evidence"), "capture.diff.png"
-      assert_includes TestSelection::Summary.new(report).to_markdown, "| system | rejected_duplicates | 1 | #{statuses.last == 'fail' ? 1 : 0} |"
+      assert_includes TestSieve::Summary.new(report).to_markdown, "| system | rejected_duplicates | 1 | #{statuses.last == 'fail' ? 1 : 0} |"
     end
   end
 
@@ -288,12 +288,12 @@ class TestSelectionSourceEvidenceTest < Minitest::Test
       expected = write_expected(unit: unit, shards: shards)
       write_artifacts(unit: unit, shards: shards, missing_timing: missing_timing, timing_file_override: timing_file_override)
 
-      report = TestSelection::Comparison.new(policy: FixtureProject::POLICY, record_parser: FixtureProject::RECORD_PARSER, root: @root, selection: selection, expected: expected).call
+      report = TestSieve::Comparison.new(policy: FixtureProject::POLICY, record_parser: FixtureProject::RECORD_PARSER, root: @root, selection: selection, expected: expected).call
       report
     end
 
     def write_selection
-      selection = TestOwnership::Selector.new(policy: FixtureProject::POLICY, root: @root, base: @base, head: @head, comparison: "push").call
+      selection = TestSieve::Selector.new(policy: FixtureProject::POLICY, root: @root, base: @base, head: @head, comparison: "push").call
       selection["comparison"] = "push"
       path = File.join(@output, "selection.json")
       File.write(path, JSON.pretty_generate(selection))

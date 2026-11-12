@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module TestSelection
+module TestSieve
   # Consumer configuration is data, so replay can check its exact identity.
   class Policy
     attr_reader :manifest_path, :test_pattern, :system_pattern, :required_roles, :optional_roles, :rules, :role_suites

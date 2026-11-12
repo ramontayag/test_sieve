@@ -609,7 +609,7 @@ class VerifySystemRunTest < Minitest::Test
         require "json"
         require_relative "#{File.join(ROOT, 'test/support/project')}"
         selection = JSON.parse(File.read(ARGV[0]))
-        manifest = TestSelection::SystemManifest.build(policy: FixtureProject::POLICY, root: ARGV[1], selection: selection, commit: ARGV[2], shards: 2)
+        manifest = TestSieve::SystemManifest.build(policy: FixtureProject::POLICY, root: ARGV[1], selection: selection, commit: ARGV[2], shards: 2)
         puts JSON.generate(manifest)
       RUBY
       selection_path = File.join(@root, "selection.json")

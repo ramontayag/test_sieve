@@ -71,14 +71,14 @@ class CheckTestOwnershipTest < Minitest::Test
     files = [ SOURCE, INPUT, UNIT, LEARNER, "test/committed_test.rb" ]
     File.delete(File.join(@root, SOURCE))
     write("test/local_test.rb")
-    result = TestOwnership::Validator.new(policy: FixtureProject::POLICY, content: YAML.dump(@manifest), files:).call
+    result = TestSieve::OwnershipValidator.new(policy: FixtureProject::POLICY, content: YAML.dump(@manifest), files:).call
     assert_equal [ "fragment" ], result["owners"]["fragment"]["depends_on"]
     assert_equal [ UNIT, LEARNER, "test/committed_test.rb" ].sort, result["tests"].keys
   end
 
   def test_committed_inventory_rejects_a_reference_only_present_locally
-    error = assert_raises(TestOwnership::Validator::Invalid) do
-      TestOwnership::Validator.new(policy: FixtureProject::POLICY, content: YAML.dump(@manifest), files: [ INPUT, UNIT, LEARNER ]).call
+    error = assert_raises(TestSieve::OwnershipValidator::Invalid) do
+      TestSieve::OwnershipValidator.new(policy: FixtureProject::POLICY, content: YAML.dump(@manifest), files: [ INPUT, UNIT, LEARNER ]).call
     end
     assert_includes error.message, "does not exist"
   end
@@ -173,7 +173,7 @@ class CheckTestOwnershipTest < Minitest::Test
 
   [ "", "null", "scalar", "- item", "version: [", "---\nversion: 1\n---\nversion: 2" ].each_with_index do |yaml, index|
     define_method("test_rejects_invalid_yaml_document_#{index}") do
-      assert_raises(TestOwnership::Validator::Invalid) { validate(yaml:) }
+      assert_raises(TestSieve::OwnershipValidator::Invalid) { validate(yaml:) }
     end
   end
 
@@ -183,7 +183,7 @@ class CheckTestOwnershipTest < Minitest::Test
       assert_includes yaml, line
       # The invalid first value must not be hidden by a later valid value.
       yaml = yaml.sub(line, "#{line.split(':').first}: null\n#{line}")
-      error = assert_raises(TestOwnership::Validator::Invalid) { validate(yaml:) }
+      error = assert_raises(TestSieve::OwnershipValidator::Invalid) { validate(yaml:) }
       assert_includes error.message, "duplicate"
     end
   end
@@ -218,11 +218,11 @@ class CheckTestOwnershipTest < Minitest::Test
 
     def validate(yaml: YAML.dump(@manifest))
       path = write("config/test_ownership.yml", yaml)
-      TestOwnership::Validator.new(policy: FixtureProject::POLICY, root: @root, manifest_path: path).call
+      TestSieve::OwnershipValidator.new(policy: FixtureProject::POLICY, root: @root, manifest_path: path).call
     end
 
     def assert_invalid(message)
-      error = assert_raises(TestOwnership::Validator::Invalid) { validate }
+      error = assert_raises(TestSieve::OwnershipValidator::Invalid) { validate }
       assert_includes error.message, message
     end
 

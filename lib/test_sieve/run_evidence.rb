@@ -2,7 +2,7 @@
 
 require_relative "source_attribution"
 
-module TestSelection
+module TestSieve
   class RunEvidence
     def initialize(run:, expected:, outcomes:, policy:, record_parser:, inventory: [], allow_empty: false)
       @policy, @record_parser = policy, record_parser

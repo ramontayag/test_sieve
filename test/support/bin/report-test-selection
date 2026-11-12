@@ -8,7 +8,7 @@ options = {}
 OptionParser.new do |opts|
   %w[ root selection expected ].each { |key| opts.on("--#{key} VALUE") { |value| options[key.to_sym] = value } }
 end.parse!
-report = TestSelection::Comparison.new(**options, policy: FixtureProject::POLICY,
+report = TestSieve::Comparison.new(**options, policy: FixtureProject::POLICY,
   record_parser: FixtureProject::RECORD_PARSER).call
 puts JSON.generate(report)
 warn report["status"]

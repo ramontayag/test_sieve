@@ -5,7 +5,7 @@ require "tmpdir"
 require "fileutils"
 require "open3"
 require "yaml"
-require_relative "../lib/test_selection"
+require_relative "../lib/test_sieve"
 
 class PublicApiTest < Minitest::Test
   def setup
@@ -22,9 +22,9 @@ class PublicApiTest < Minitest::Test
     @base = commit
     write("src/feature.txt", "changed\n")
     @head = commit
-    @selection = TestOwnership::Selector.new(root: @root, base: @base, head: @head,
+    @selection = TestSieve::Selector.new(root: @root, base: @base, head: @head,
       comparison: "push", policy: @policy).call
-    @manifest = TestSelection::SystemManifest.build(root: @root, selection: @selection,
+    @manifest = TestSieve::SystemManifest.build(root: @root, selection: @selection,
       commit: @head, shards: 4, policy: @policy)
     write("manifest.json", JSON.generate(@manifest))
   end
@@ -51,16 +51,16 @@ class PublicApiTest < Minitest::Test
 
   def test_changed_policy_identity_rejects_old_manifest
     changed = project_policy(identity: "independent-project-v2")
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
-      TestSelection::SystemManifest.new(root: @root, manifest: @manifest, policy: changed).validate(expected_commit: @head)
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
+      TestSieve::SystemManifest.new(root: @root, manifest: @manifest, policy: changed).validate(expected_commit: @head)
     end
     assert_includes error.message, "policy_digest"
   end
 
   def test_changed_engine_version_rejects_old_manifest
     @manifest["selection"]["engine_version"] = "0.0.0"
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
-      TestSelection::SystemManifest.new(root: @root, manifest: @manifest, policy: @policy).validate(expected_commit: @head)
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
+      TestSieve::SystemManifest.new(root: @root, manifest: @manifest, policy: @policy).validate(expected_commit: @head)
     end
     assert_includes error.message, "engine_version"
   end
@@ -103,7 +103,7 @@ class PublicApiTest < Minitest::Test
 
   private
     def project_policy(identity: "independent-project-v1")
-      TestSelection::Policy.new(manifest_path: "ownership.yml",
+      TestSieve::Policy.new(manifest_path: "ownership.yml",
         test_pattern: "checks/**/*.spec", system_pattern: "checks/acceptance/**/*.spec",
         required_roles: %w[ fast acceptance ], optional_roles: [],
         role_suites: { "fast" => "unit", "acceptance" => "system" },
@@ -111,7 +111,7 @@ class PublicApiTest < Minitest::Test
     end
 
     def verify
-      TestSelection::SystemRunGate.new(root: @root, manifest_path: File.join(@root, "manifest.json"),
+      TestSieve::SystemRunGate.new(root: @root, manifest_path: File.join(@root, "manifest.json"),
         expected_commit: @head, run_id: "local-run", run_attempt: "1", repository: "independent/project",
         shards: 4, run_dirs: [ File.join(@root, "results") ], policy: @policy,
         record_parser: ->(line) { JSON.parse(line) })
@@ -122,7 +122,7 @@ class PublicApiTest < Minitest::Test
         write("results/shard-#{index}.json", JSON.generate("shard_index" => index, "shard_total" => 4,
           "commit" => @head, "run_id" => "local-run", "run_attempt" => "1", "mode" => "selected",
           "manifest_checksum" => @manifest["checksum"], "run_files" => @files,
-          "files_digest" => TestSelection::RunResult.files_digest(@files), "files" => files,
+          "files_digest" => TestSieve::RunResult.files_digest(@files), "files" => files,
           "empty" => files.empty?, "exit_status" => 0, "outcomes" => "outcomes-#{index}.jsonl"))
         next if files.empty?
 
