@@ -1,0 +1,5 @@
+/.bundle/
+/.worktrees/
+/vendor/bundle/
+/pkg/
+/*.gem

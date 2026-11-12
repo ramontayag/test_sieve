@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "optparse"
+require_relative "../project"
+
+options = {}
+begin
+  OptionParser.new do |opts|
+    %w[ root base head comparison ].each { |key| opts.on("--#{key} VALUE") { |value| options[key.to_sym] = value } }
+  end.parse!
+  raise ArgumentError, "unexpected arguments" unless ARGV.empty?
+  raise ArgumentError, "comparison must be pr or push" unless %w[ pr push ].include?(options[:comparison])
+  puts JSON.generate(TestOwnership::Selector.new(**options, policy: FixtureProject::POLICY).call)
+rescue ArgumentError, OptionParser::ParseError, TestOwnership::Selector::Unavailable => error
+  warn "bin/select-affected-tests: #{error.message}"
+  exit 1
+end

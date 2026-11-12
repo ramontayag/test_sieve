@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "optparse"
+require_relative "../project"
+
+options = { root: Dir.pwd, manifest: FixtureProject::POLICY.manifest_path }
+begin
+  OptionParser.new do |opts|
+    %w[ root manifest ].each { |key| opts.on("--#{key} VALUE") { |value| options[key.to_sym] = value } }
+    opts.on("--json") { }
+  end.parse!
+  raise ArgumentError, "unexpected arguments" unless ARGV.empty?
+  result = TestOwnership::Validator.new(root: options[:root],
+    manifest_path: File.expand_path(options[:manifest], options[:root]), policy: FixtureProject::POLICY).call
+  puts JSON.generate(result)
+rescue ArgumentError, OptionParser::ParseError, TestOwnership::Validator::Invalid => error
+  warn "bin/check-test-ownership: #{error.message}"
+  exit 1
+end

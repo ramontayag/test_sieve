@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "optparse"
+require_relative "../project"
+
+options = {}
+OptionParser.new do |opts|
+  %w[ root selection expected ].each { |key| opts.on("--#{key} VALUE") { |value| options[key.to_sym] = value } }
+end.parse!
+report = TestSelection::Comparison.new(**options, policy: FixtureProject::POLICY,
+  record_parser: FixtureProject::RECORD_PARSER).call
+puts JSON.generate(report)
+warn report["status"]
+report.fetch("results", {}).each_value do |groups|
+  groups.each do |group, results|
+    failures = results.count { |record| %w[ fail error ].include?(record["outcome"]) }
+    warn "#{group}: #{failures} failures/errors"
+  end
+end
+report["reasons"].each { |reason| warn reason }
+exit(report["status"] == "complete" ? 0 : 1)

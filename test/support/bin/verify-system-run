@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "optparse"
+require_relative "../project"
+
+options = { manifest_path: nil, run_dirs: [] }
+begin
+  OptionParser.new do |opts|
+    { "root" => :root, "manifest" => :manifest_path, "commit" => :expected_commit,
+      "run-id" => :run_id, "run-attempt" => :run_attempt, "repository" => :repository }.each do |flag, key|
+      opts.on("--#{flag} VALUE") { |value| options[key] = value }
+    end
+    opts.on("--shards COUNT", Integer) { |value| options[:shards] = value }
+    opts.on("--run-dir DIR") { |value| options[:run_dirs] << value }
+  end.parse!
+  raise ArgumentError, "unexpected arguments" unless ARGV.empty?
+  raise ArgumentError, "missing run directory" if options[:run_dirs].empty?
+  gate = TestSelection::SystemRunGate.new(**options, policy: FixtureProject::POLICY,
+    record_parser: FixtureProject::RECORD_PARSER)
+  passed = gate.call
+  puts JSON.generate(gate.report)
+  gate.errors.each { |error| warn "bin/verify-system-run: #{error}" }
+  exit(passed ? 0 : 1)
+rescue ArgumentError, OptionParser::ParseError, JSON::ParserError, TestSelection::Invalid,
+  TestSelection::SystemRunGate::Invalid, TestSelection::SystemManifest::Invalid, SystemCallError => error
+  warn "bin/verify-system-run: #{error.message}"
+  exit 2
+end
