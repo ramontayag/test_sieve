@@ -16,7 +16,7 @@ require_relative "../support/project"
 # it without asking the selector again. These tests build manifests from real
 # selector reports in real temporary Git repositories, then change one thing at
 # a time to show that validation rejects it.
-class TestSelectionSystemManifestTest < Minitest::Test
+class TestSieveSystemManifestTest < Minitest::Test
   ROOT = File.expand_path("../..", __dir__)
 
   def setup
@@ -71,7 +71,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     write("app/source.rb", "changed")
     head = commit
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       build(head:, commit: @base)
     end
 
@@ -123,8 +123,8 @@ class TestSelectionSystemManifestTest < Minitest::Test
     selection = selector(head:)
     selection["system_files"] = []
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
-      TestSelection::SystemManifest.build(policy: FixtureProject::POLICY, root: @root, selection:, commit: head, shards: 3)
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
+      TestSieve::SystemManifest.build(policy: FixtureProject::POLICY, root: @root, selection:, commit: head, shards: 3)
     end
 
     assert_includes error.message, "at least one"
@@ -138,8 +138,8 @@ class TestSelectionSystemManifestTest < Minitest::Test
     selection = selector(head:)
     selection.delete("ownership_digest")
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
-      TestSelection::SystemManifest.build(policy: FixtureProject::POLICY, root: @root, selection:, commit: head, shards: 3)
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
+      TestSieve::SystemManifest.build(policy: FixtureProject::POLICY, root: @root, selection:, commit: head, shards: 3)
     end
 
     assert_includes error.message, "missing required keys"
@@ -153,8 +153,8 @@ class TestSelectionSystemManifestTest < Minitest::Test
     selection = selector(head:)
     selection["system_files"] = [ "test/system/consumer_test.rb" ]
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
-      TestSelection::SystemManifest.build(policy: FixtureProject::POLICY, root: @root, selection:, commit: head, shards: 3)
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
+      TestSieve::SystemManifest.build(policy: FixtureProject::POLICY, root: @root, selection:, commit: head, shards: 3)
     end
 
     assert_includes error.message, "selection system_files differ"
@@ -168,8 +168,8 @@ class TestSelectionSystemManifestTest < Minitest::Test
     selection = selector(head:)
     selection["system_files"] = [ "test/host_test.rb" ]
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
-      TestSelection::SystemManifest.build(policy: FixtureProject::POLICY, root: @root, selection:, commit: head, shards: 3)
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
+      TestSieve::SystemManifest.build(policy: FixtureProject::POLICY, root: @root, selection:, commit: head, shards: 3)
     end
 
     assert_includes error.message, "system test"
@@ -181,7 +181,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     head = commit
     manifest = build(head:)
 
-    validated = TestSelection::SystemManifest.new(policy: FixtureProject::POLICY, root: @root, manifest:).validate(expected_commit: head)
+    validated = TestSieve::SystemManifest.new(policy: FixtureProject::POLICY, root: @root, manifest:).validate(expected_commit: head)
 
     assert_equal manifest, validated
   end
@@ -222,7 +222,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest["checksum"] = "0" * 64
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -237,7 +237,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest["files"]["test/system/host_test.rb"] = Digest::SHA256.hexdigest("different content")
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -253,7 +253,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     write("test/system/host_test.rb", "changed after the manifest was built")
     changed = commit
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, changed)
     end
 
@@ -268,7 +268,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest.dig("selection", "system_files") << "test/system/unknown_test.rb"
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -282,7 +282,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest["selection"]["ownership_digest"] = "0" * 64
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -296,7 +296,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest["selection"]["rules_digest"] = "0" * 64
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -312,7 +312,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     write("app/host.rb", "changed")
     other = commit
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, other)
     end
 
@@ -326,7 +326,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest["files"].delete("test/system/host_test.rb")
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -340,7 +340,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest["files"]["test/system/host_test.rb"] = manifest["files"]["test/system/consumer_test.rb"]
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -354,7 +354,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest["files"]["../outside_test.rb"] = manifest["files"]["test/system/host_test.rb"]
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -372,7 +372,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest["commit"] = symlinked
     manifest["selection"]["source_sha"] = symlinked
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, symlinked)
     end
 
@@ -386,7 +386,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest["files"]["test/host_test.rb"] = Digest::SHA256.hexdigest(git_bytes("show", "#{head}:test/host_test.rb"))
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -400,7 +400,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest.dig("assignments", "shards")[0] = [ "test/system/unknown_test.rb" ]
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -414,7 +414,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest.dig("assignments", "shards")[1] = []
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -428,7 +428,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest.dig("assignments", "shards")[1] = [ "test/system/consumer_test.rb" ]
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -443,7 +443,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest.dig("assignments", "shards").reverse!
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -459,7 +459,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     assert_equal [ [ "test/system/host_test.rb" ], [], [] ], manifest.dig("assignments", "shards")
     manifest.dig("assignments", "shards").pop
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -474,7 +474,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest.dig("assignments", "shards")[0] = [ "test/system/consumer_test.rb", 42 ]
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -489,7 +489,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest["selection"]["requested_base_sha"] = 42
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -504,7 +504,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest["approved"] = true
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -517,7 +517,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest.delete("assignments")
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -529,7 +529,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     write("app/source.rb", "changed")
     head = commit
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       build(head:, shards: 0)
     end
 
@@ -539,8 +539,8 @@ class TestSelectionSystemManifestTest < Minitest::Test
   # A document with conflicting keys must fail. JSON otherwise keeps the last
   # value and hides the conflict.
   def test_rejects_a_document_with_duplicate_json_keys
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
-      TestSelection::SystemManifest.parse_json('{"version":1,"version":1}')
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
+      TestSieve::SystemManifest.parse_json('{"version":1,"version":1}')
     end
 
     assert_includes error.message, "duplicate"
@@ -554,7 +554,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     path = File.join(@output, "manifest.json")
     File.write(path, JSON.pretty_generate(manifest))
 
-    validated = TestSelection::SystemManifest.from_file(policy: FixtureProject::POLICY, root: @root, path:, expected_commit: head)
+    validated = TestSieve::SystemManifest.from_file(policy: FixtureProject::POLICY, root: @root, path:, expected_commit: head)
 
     assert_equal manifest, validated
   end
@@ -571,8 +571,8 @@ class TestSelectionSystemManifestTest < Minitest::Test
     target = commit
     selection = selector(head:, base: target, comparison: "pr")
 
-    manifest = TestSelection::SystemManifest.build(policy: FixtureProject::POLICY, root: @root, selection:, commit: head, shards: 3)
-    validated = TestSelection::SystemManifest.new(policy: FixtureProject::POLICY, root: @root, manifest:).validate(expected_commit: head)
+    manifest = TestSieve::SystemManifest.build(policy: FixtureProject::POLICY, root: @root, selection:, commit: head, shards: 3)
+    validated = TestSieve::SystemManifest.new(policy: FixtureProject::POLICY, root: @root, manifest:).validate(expected_commit: head)
 
     assert_equal manifest, validated
     assert_equal "pr", manifest.dig("selection", "comparison")
@@ -586,10 +586,10 @@ class TestSelectionSystemManifestTest < Minitest::Test
     selection["comparison"] = "invalid-comparison"
     manifest["selection"]["comparison"] = "invalid-comparison"
 
-    build_error = assert_raises(TestSelection::SystemManifest::Invalid) do
-      TestSelection::SystemManifest.build(policy: FixtureProject::POLICY, root: @root, selection:, commit: head, shards: 3)
+    build_error = assert_raises(TestSieve::SystemManifest::Invalid) do
+      TestSieve::SystemManifest.build(policy: FixtureProject::POLICY, root: @root, selection:, commit: head, shards: 3)
     end
-    validation_error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    validation_error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -606,7 +606,7 @@ class TestSelectionSystemManifestTest < Minitest::Test
     manifest = build(head:)
     manifest["selection"]["requested_base_sha"] = "0" * 40
 
-    error = assert_raises(TestSelection::SystemManifest::Invalid) do
+    error = assert_raises(TestSieve::SystemManifest::Invalid) do
       validate(manifest, head)
     end
 
@@ -616,11 +616,11 @@ class TestSelectionSystemManifestTest < Minitest::Test
   private
     def build(head:, commit: head, shards: 3)
       selection = selector(head:)
-      TestSelection::SystemManifest.build(policy: FixtureProject::POLICY, root: @root, selection:, commit:, shards:)
+      TestSieve::SystemManifest.build(policy: FixtureProject::POLICY, root: @root, selection:, commit:, shards:)
     end
 
     def validate(manifest, commit)
-      TestSelection::SystemManifest.new(policy: FixtureProject::POLICY, root: @root, manifest:).validate(expected_commit: commit)
+      TestSieve::SystemManifest.new(policy: FixtureProject::POLICY, root: @root, manifest:).validate(expected_commit: commit)
     end
 
     def selector(head:, base: @base, comparison: "push")

@@ -4,7 +4,7 @@ require "json"
 
 require_relative "run_evidence"
 
-module TestSelection
+module TestSieve
   # Verifies the execution evidence of one browser-test shard.
   #
   # A nonempty shard must prove that it executed at least one test from every
@@ -12,7 +12,7 @@ module TestSelection
   # executed nothing. The two cases are different contracts, so they are
   # checked differently.
   #
-  # The nonempty case reuses TestSelection::RunEvidence, which owns the
+  # The nonempty case reuses TestSieve::RunEvidence, which owns the
   # outcome-stream format rules, the run identity checks, and the source
   # attribution rules. The empty case has no outcome stream to parse, so it
   # is checked from the recorded assignment and shard records.

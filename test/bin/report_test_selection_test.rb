@@ -27,7 +27,7 @@ class ReportTestSelectionTest < Minitest::Test
     @base = commit
     write("app/selected.rb", "changed")
     @head = commit
-    @selection = TestOwnership::Selector.new(policy: FixtureProject::POLICY, root: @root, base: @base, head: @head, comparison: "push").call
+    @selection = TestSieve::Selector.new(policy: FixtureProject::POLICY, root: @root, base: @base, head: @head, comparison: "push").call
     @expected = { "repository" => "owner/repo", "workflow_run_id" => "123", "workflow_run_attempt" => "2",
       "commit" => @head, "system_shards" => [ "shard-0-of-2", "shard-1-of-2" ], "runs" => [] }
     collect("unit", "unavailable", %w[ selected omitted ])

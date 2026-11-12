@@ -2,10 +2,10 @@
 
 require "json"
 require "digest"
-require_relative "../test_ownership/selector"
+require_relative "selector"
 require_relative "run_evidence"
 
-module TestSelection
+module TestSieve
   class Invalid < StandardError; end
 
   class Comparison
@@ -39,7 +39,7 @@ module TestSelection
       verify_file_coverage
       @report["status"] = "complete" if @report["reasons"].empty?
       @report
-    rescue Invalid, JSON::ParserError, ArgumentError, KeyError, TypeError, SystemCallError, TestOwnership::Selector::Unavailable => error
+    rescue Invalid, JSON::ParserError, ArgumentError, KeyError, TypeError, SystemCallError, TestSieve::Selector::Unavailable => error
       @report["reasons"] << error.message
       @report
     end
@@ -62,7 +62,7 @@ module TestSelection
         raise Invalid, "comparison must be pr, push, or manual" unless %w[ pr push manual ].include?(selection["comparison"])
         verify_commits(selection)
         verify_replay(selection)
-        inventory = TestOwnership::Selector.new(policy: @policy, root: @root, base: selection["source_sha"], head: selection["source_sha"], comparison: "push").call
+        inventory = TestSieve::Selector.new(policy: @policy, root: @root, base: selection["source_sha"], head: selection["source_sha"], comparison: "push").call
         @inventory = inventory.values_at("unit_files", "system_files").flatten
       end
 
@@ -75,7 +75,7 @@ module TestSelection
 
       def verify_replay(selection)
         comparison = selection.fetch("comparison") == "manual" ? "push" : selection.fetch("comparison")
-        replay = TestOwnership::Selector.new(policy: @policy, root: @root, base: selection.fetch("requested_base_sha"),
+        replay = TestSieve::Selector.new(policy: @policy, root: @root, base: selection.fetch("requested_base_sha"),
           head: selection.fetch("source_sha"), comparison:).call
         replay.except("requested_base", "requested_head", "comparison").each do |key, value|
           raise Invalid, "selection #{key} differs from recomputed selection" unless selection[key] == value

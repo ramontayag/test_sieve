@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative "../test_ownership/selector"
+require_relative "selector"
 
-module TestSelection
+module TestSieve
   # Classifies the source file a recorded test result points at.
   #
   # Three cases exist, and they are different problems:

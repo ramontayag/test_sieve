@@ -16,14 +16,14 @@ begin
   end.parse!
   raise ArgumentError, "unexpected arguments" unless ARGV.empty?
   raise ArgumentError, "missing run directory" if options[:run_dirs].empty?
-  gate = TestSelection::SystemRunGate.new(**options, policy: FixtureProject::POLICY,
+  gate = TestSieve::SystemRunGate.new(**options, policy: FixtureProject::POLICY,
     record_parser: FixtureProject::RECORD_PARSER)
   passed = gate.call
   puts JSON.generate(gate.report)
   gate.errors.each { |error| warn "bin/verify-system-run: #{error}" }
   exit(passed ? 0 : 1)
-rescue ArgumentError, OptionParser::ParseError, JSON::ParserError, TestSelection::Invalid,
-  TestSelection::SystemRunGate::Invalid, TestSelection::SystemManifest::Invalid, SystemCallError => error
+rescue ArgumentError, OptionParser::ParseError, JSON::ParserError, TestSieve::Invalid,
+  TestSieve::SystemRunGate::Invalid, TestSieve::SystemManifest::Invalid, SystemCallError => error
   warn "bin/verify-system-run: #{error.message}"
   exit 2
 end

@@ -9,22 +9,28 @@ require "bundler"
 class PackagedGemTest < Minitest::Test
   def test_installed_gem_runs_the_public_contract_outside_the_checkout
     root = File.expand_path("..", __dir__)
+    dependency_paths = Gem.loaded_specs.values.reject { |spec| spec.name == "test_sieve" }.map(&:base_dir)
     Dir.mktmpdir("test-sieve-install") do |directory|
       artifact = File.join(directory, "test_sieve.gem")
       home = File.join(directory, "gems")
       Bundler.with_unbundled_env do
         run_command({}, root, "gem", "build", "test_sieve.gemspec", "--output", artifact)
-        environment = { "GEM_HOME" => home, "GEM_PATH" => ([ home ] + Gem.path).join(File::PATH_SEPARATOR),
+        environment = { "GEM_HOME" => home, "GEM_PATH" => ([ home ] + dependency_paths + Gem.path).uniq.join(File::PATH_SEPARATOR),
           "RUBYLIB" => nil, "RUBYOPT" => nil }
         run_command(environment, directory, "gem", "install", artifact, "--local", "--no-document")
 
         contract = File.read(File.join(__dir__, "public_api_test.rb"))
-          .sub('require_relative "../lib/test_selection"', 'require "test_sieve"')
+          .sub('require_relative "../lib/test_sieve"', 'require "test_sieve"')
         script = <<~RUBY + contract
           require "test_sieve"
           installed = Gem.loaded_specs.fetch("test_sieve").full_gem_path
           abort "loaded from checkout" unless installed.start_with?(#{home.inspect} + "/")
-          abort "wrong version" unless TestSelection::VERSION == "1.0.0"
+          abort "wrong version" unless TestSieve::VERSION == "1.0.0"
+          abort "legacy namespace loaded" if Object.const_defined?(:TestSelection) || Object.const_defined?(:TestOwnership)
+          abort "wrong license" unless Gem.loaded_specs.fetch("test_sieve").license == "MIT"
+          %w[ LICENSE.txt docs/execution-verification.md ].each do |path|
+            abort "missing packaged file: " + path unless File.file?(File.join(installed, path))
+          end
         RUBY
         File.write(File.join(directory, "public_api_test.rb"), script)
         output = run_command(environment, directory, RbConfig.ruby, "public_api_test.rb")

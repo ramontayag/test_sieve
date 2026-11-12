@@ -6,7 +6,7 @@ require "open3"
 require_relative "run_result"
 require_relative "system_manifest"
 
-module TestSelection
+module TestSieve
   # Checks that a browser-test run covered exactly the list it was asked to
   # cover.
   #

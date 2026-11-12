@@ -4,9 +4,9 @@ require "digest"
 require "json"
 require "open3"
 require "pathname"
-require_relative "../test_ownership/selector"
+require_relative "selector"
 
-module TestSelection
+module TestSieve
   # Builds and verifies the fixed list of system tests a runner consumes.
   #
   # The manifest binds one selection to one commit. It records the tested
@@ -206,9 +206,9 @@ module TestSelection
       end
 
       def recompute_selection(selection, commit)
-        TestOwnership::Selector.new(policy: @policy, root: @root, base: selection["requested_base_sha"],
+        TestSieve::Selector.new(policy: @policy, root: @root, base: selection["requested_base_sha"],
           head: commit, comparison: selection["comparison"]).call
-      rescue TestOwnership::Selector::Unavailable => error
+      rescue TestSieve::Selector::Unavailable => error
         raise Invalid, "the selection could not be recomputed: #{error.message}"
       end
 
