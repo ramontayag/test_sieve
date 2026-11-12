@@ -37,31 +37,30 @@ broad_changes:
 owners:
   shipping:
     sources:
-      - lib/shipping.rb
+      - lib/shipping.rb # Replace with your source file.
     inputs: []
     tests:
       unit:
-        - test/shipping_test.rb
+        - test/shipping_test.rb # Replace with its unit test.
       system:
-        - test/system/checkout_test.rb
+        - test/system/checkout_test.rb # Replace with its system test.
     notes: Shipping prices are also checked through checkout.
 ```
 
-Replace `lib/shipping.rb` with a source file in your app. Replace the two test
-paths with its unit and system tests. This tells Test Sieve: “When this code
-changes, run these tests.”
+This tells Test Sieve: “When this code changes, run these tests.”
 
 ### 3. Copy the selection script
 
-Create `script/select_tests.rb`:
+Create `script/select_tests.rb`. This script prints which tests to run; it does
+not execute them.
 
 ```ruby
 require "test_sieve"
 
 policy = TestSieve::Policy.new(
   manifest_path: "test_ownership.yml",
-  test_pattern: "test/**/*_test.rb",
-  system_pattern: "test/system/**/*_test.rb",
+  test_pattern: "test/**/*_test.rb", # Change to match all your test files.
+  system_pattern: "test/system/**/*_test.rb", # Change to match your system tests.
   required_roles: %w[unit system],
   optional_roles: [],
   role_suites: { "unit" => "unit", "system" => "system" },
@@ -79,9 +78,6 @@ selection = TestSieve::Selector.new(
 
 puts JSON.pretty_generate(selection)
 ```
-
-Change `test_pattern` and `system_pattern` if your tests use a different directory
-layout. This script prints which tests to run; it does not execute them.
 
 ### 4. Make a change and see which tests it needs
 
@@ -118,11 +114,11 @@ selection rules.
 For a pull request, use your base branch instead of `$base`:
 
 ```sh
+# Replace origin/master with your base branch.
 bundle exec ruby script/select_tests.rb origin/master HEAD
 ```
 
-Replace `origin/master` with your own base branch. Both revisions must exist
-locally. Uncommitted edits are not included.
+Both revisions must exist locally. Uncommitted edits are not included.
 
 ### 5. Inspect the selection before using it to skip tests
 
@@ -155,14 +151,14 @@ Suppose invoices use the shipping calculation. Add this under `owners` alongside
 ```yaml
   invoicing:
     sources:
-      - lib/invoice.rb
+      - lib/invoice.rb # Replace with the dependent feature's source file.
     inputs: []
-    depends_on: [shipping]
+    depends_on: [shipping] # Name the owner this feature depends on.
     tests:
       unit:
-        - test/invoice_test.rb
+        - test/invoice_test.rb # Replace with its unit test.
       system:
-        - test/system/invoice_test.rb
+        - test/system/invoice_test.rb # Replace with its system test.
     notes: Invoices include the calculated shipping price.
 ```
 
@@ -187,8 +183,8 @@ Add other files that affect shipping to its `inputs` list:
 
 ```yaml
     inputs:
-      - app/views/checkout/_shipping.html.erb
-      - test/fixtures/shipping_rates.yml
+      - app/views/checkout/_shipping.html.erb # Replace with your template.
+      - test/fixtures/shipping_rates.yml # Replace with your fixture.
 ```
 
 After committing the updated map, a change to either input selects the shipping
