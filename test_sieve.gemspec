@@ -6,10 +6,12 @@ Gem::Specification.new do |spec|
   spec.authors = [ "Ramon Tayag" ]
   spec.license = "MIT"
   spec.summary = "Select affected tests and verify execution evidence."
-  spec.description = "Framework-neutral Git test selection, ownership validation, shard manifests, and execution evidence verification."
+  spec.description = "Git test selection, Rails execution, Minitest reporting, shard manifests, and execution evidence verification."
   spec.homepage = "https://github.com/ramontayag/test_sieve"
   spec.required_ruby_version = ">= 3.2"
-  spec.files = Dir["lib/**/*.rb", "README.md", "LICENSE.txt", "docs/**/*.md"]
+  spec.files = Dir["lib/**/*.rb", "exe/*", "README.md", "LICENSE.txt", "docs/**/*.md"]
+  spec.bindir = "exe"
+  spec.executables = [ "test-sieve" ]
   spec.require_paths = [ "lib" ]
   spec.metadata["source_code_uri"] = spec.homepage
   spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"

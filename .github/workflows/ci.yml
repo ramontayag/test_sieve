@@ -11,6 +11,9 @@ jobs:
     strategy:
       matrix:
         ruby: ["3.2", "3.4"]
+        gemfile: ["gemfiles/minitest_5_25.gemfile", "gemfiles/minitest_6.gemfile"]
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
     steps:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1

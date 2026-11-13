@@ -4,11 +4,21 @@ Execution verification checks that the files assigned to each job actually ran
 and that their results belong to the expected commit and CI run. It does not
 prove that your ownership map covers every dependency or approve skipping tests.
 
-Start with the selection and policy from the [getting-started example](../README.md#select-tests-in-your-app).
+Start with the map from the [getting-started example](../README.md#get-started).
+Save the selection for your comparison:
+
+```sh
+# Replace origin/master with your base branch.
+bundle exec test-sieve select --base origin/master --output /tmp/selection.json
+```
 
 ## Build a manifest
 
 ```ruby
+require "test_sieve/rails"
+
+policy = TestSieve::Rails.policy # Use the same policy as your selection command.
+selection = JSON.parse(File.read("/tmp/selection.json"))
 manifest = TestSieve::SystemManifest.build(
   root: repository,
   selection: selection,
@@ -63,7 +73,15 @@ Every record includes:
   prefixes that value with the repository and `/`.
 
 The `workflow_*` field names are part of the format, not a GitHub Actions
-dependency. The package reads no workflow environment variables.
+dependency. The optional Minitest adapter reads GitHub Actions environment
+variables to populate them. Other CI systems can supply a metadata object whose
+`run_metadata` method returns the same fields.
+
+The [Minitest adapter](../README.md#record-outcomes-and-timings) writes these
+outcome records. Set `TEST_SUITE_NAME=system-shard-N`, `TEST_SHARD_INDEX=N`, and
+`TEST_SHARD_TOTAL=M` for each shard. Use a separate outcome path for each shard.
+The adapter writes outcomes and timings; your CI runner still writes the shard
+records described below.
 
 Each `test_result` includes `test_class`, `test_name`, `test_id` (class plus `#`
 plus name), `file`, positive source `line`, sequential one-based

@@ -3,9 +3,9 @@
 Run the tests affected by a code change. Run the full suite when the change
 cannot be safely narrowed down.
 
-Map your code to tests, compare a change, and pass the selected files to your
-existing runner. Test Sieve is a Ruby library, not a test runner or ready-made CI
-integration.
+Map your code to tests, then use the included commands to select and run them.
+The Rails adapter runs your existing test runner. The Minitest adapter records
+outcomes and timings without replacing your normal test output.
 
 ## Get started
 
@@ -49,50 +49,35 @@ owners:
 
 This tells Test Sieve: “When this code changes, run these tests.”
 
-### 3. Copy the selection script
+### 3. Check your map
 
-Create `script/select_tests.rb`. This script prints which tests to run; it does
-not execute them.
-
-```ruby
-require "test_sieve"
-
-policy = TestSieve::Policy.new(
-  manifest_path: "test_ownership.yml",
-  test_pattern: "test/**/*_test.rb", # Change to match all your test files.
-  system_pattern: "test/system/**/*_test.rb", # Change to match your system tests.
-  required_roles: %w[unit system],
-  optional_roles: [],
-  role_suites: { "unit" => "unit", "system" => "system" },
-  rules: ["test_ownership.yml", "script/select_tests.rb"],
-  identity: "my-app-selection-v1"
-)
-
-selection = TestSieve::Selector.new(
-  root: Dir.pwd,
-  base: ARGV.fetch(0),
-  head: ARGV.fetch(1),
-  comparison: "pr",
-  policy: policy
-).call
-
-puts JSON.pretty_generate(selection)
+```sh
+bundle exec test-sieve check
 ```
+
+The command checks that the paths exist and every owner declares the required
+test roles. It does not run tests. By default, Test Sieve finds tests under
+`test/**/*_test.rb` and system tests under `test/system/**/*_test.rb`.
+For other layouts, [configure the adapter](#configure-the-adapter).
 
 ### 4. Make a change and see which tests it needs
 
-Commit the map and script **before** the change you want to test. To try it
-locally, save that starting commit:
+Commit the setup **before** the change you want to test, then save that starting
+commit:
 
 ```sh
+git add Gemfile Gemfile.lock test_ownership.yml
+git commit -m "Configure selective test runs"
 base=$(git rev-parse HEAD)
 ```
 
-Edit your mapped source file and commit the change. Then run from your repository
+Edit your mapped source file. Then commit the change and run from your repository
 root, in the same shell:
 
 ```sh
-bundle exec ruby script/select_tests.rb "$base" HEAD
+git add lib/shipping.rb # Replace with the source file you changed.
+git commit -m "Update shipping prices"
+bundle exec test-sieve select --base "$base"
 ```
 
 For a change only to `lib/shipping.rb`, the output includes:
@@ -115,7 +100,7 @@ For a pull request, use your base branch instead of `$base`:
 
 ```sh
 # Replace origin/master with your base branch.
-bundle exec ruby script/select_tests.rb origin/master HEAD
+bundle exec test-sieve select --base origin/master
 ```
 
 Both revisions must exist locally. Uncommitted edits are not included.
@@ -125,7 +110,7 @@ Both revisions must exist locally. Uncommitted edits are not included.
 Save and read the result:
 
 ```sh
-bundle exec ruby script/select_tests.rb "$base" HEAD > /tmp/test-sieve-selection.json
+bundle exec test-sieve select --base "$base" --output /tmp/test-sieve-selection.json
 cat /tmp/test-sieve-selection.json
 ```
 
@@ -133,13 +118,113 @@ Keep running your usual full-suite command while you check the proposed
 selections on real changes. For this example, do the lists include both shipping
 and checkout tests? If an expected test is missing, correct the map.
 
-When you are ready to use selection, pass `unit_files` to your unit-test command
-and `system_files` to your system-test command. Test Sieve selects whole files,
-not individual test methods. If `mode` is `full`, run all the returned files.
+### 6. Run the affected tests
+
+When you are ready to use selection, run:
+
+```sh
+bundle exec test-sieve run --base "$base" --suite unit
+bundle exec test-sieve run --base "$base" --suite system
+```
+
+The Rails adapter invokes `bin/rails test` with the explicit files for each
+suite, including system-test files. If selection requires a full run, it passes
+the full inventory for that suite. If the suite has no selected files, it does
+not start Rails. Test failures return a nonzero exit status.
+
+`run` requires a clean checkout at the selected head commit. Commit your changes
+first; a selection based on committed code must not skip tests for unsaved code.
+`select` and `check` can still run while your checkout has changes.
 
 In CI, keep your full-suite job while trying this out. Add the selection command
 as a separate step and print its JSON in the log or upload it as an artifact.
 Test Sieve does not publish a report for you.
+
+## Record outcomes and timings
+
+Add this after `require "rails/test_help"` in a Rails app's `test/test_helper.rb`.
+For plain Minitest, add it after `require "minitest/autorun"` instead. The adapter
+supports Minitest 5 (5.25.4 or newer) and Minitest 6:
+
+```ruby
+require "test_sieve/minitest"
+
+TestSieve::Minitest.install!(
+  outcome_output: ENV["TEST_OUTCOMES_OUTPUT"], # JSONL: start, each result, and end.
+  timing_output: ENV["TEST_TIMING_OUTPUT"], # JSON: per-test and total durations.
+  suite: ENV.fetch("TEST_SUITE_NAME", "unit"), # Set to system for browser tests.
+  root: Dir.pwd # Use Rails.root.to_s if tests can start outside the app root.
+)
+```
+
+Commit the test-helper setup before your next code-change comparison. No files
+are written unless you supply an output path. Try a recorded unit run:
+
+```sh
+TEST_OUTCOMES_OUTPUT=/tmp/unit-outcomes.jsonl \
+TEST_TIMING_OUTPUT=/tmp/unit-timings.json \
+  bundle exec test-sieve run --base "$base" --suite unit
+```
+
+The Rails adapter sets `TEST_SUITE_NAME` for the child process. Outcomes include
+pass, fail, error, and skip results, in execution order. Completed test records
+survive a later crash. Timings list tests slowest first. GitHub Actions run,
+attempt, and repository metadata are included when its environment variables
+are present; nothing is uploaded automatically.
+
+Use a fresh outcomes path for each run: the JSONL file is append-only. Use
+separate paths for unit and system runs so their identities and timings stay
+separate. Without explicit paths, you can run both suites with
+`bundle exec test-sieve run --base "$base"`.
+
+For plain Minitest without Rails, install the same reporter and run your usual
+command with `TEST_SUITE_NAME=unit` and the output variables shown above.
+
+## Configure the adapter
+
+The default Rails layout needs no Ruby configuration. For different test paths
+or coverage roles, create `config/test_sieve.rb`:
+
+```ruby
+require "test_sieve/rails"
+
+TestSieve::Rails.policy(
+  manifest_path: "test_ownership.yml", # Change if you keep the map elsewhere.
+  test_pattern: "test/**/*_test.rb", # Change to match all your test files.
+  system_pattern: "test/system/**/*_test.rb" # Change to match your system tests.
+)
+```
+
+Pass it explicitly:
+
+```sh
+bundle exec test-sieve select --config config/test_sieve.rb --base "$base"
+bundle exec test-sieve run --config config/test_sieve.rb --base "$base" --suite unit
+```
+
+Commit configuration changes before the code change you want to compare.
+Configuration files execute Ruby and must return a `TestSieve::Policy`; only
+load files you trust. Test Sieve does not load a configuration file automatically.
+
+If your project wraps Rails in another command, create `script/test_affected.rb`:
+
+```ruby
+require "test_sieve/cli"
+
+exit TestSieve::CLI.new(
+  command: ["bin/test"] # Replace with your runner's argument array; no shell strings.
+).call(["run", *ARGV])
+```
+
+Commit the script, then invoke it with the same options as the built-in command:
+
+```sh
+# Replace origin/master with your base branch.
+bundle exec ruby script/test_affected.rb --base origin/master --suite unit
+```
+
+The CLI checks that the selection matches a clean checkout before invoking your
+runner. Add `--config config/test_sieve.rb` if you use a custom policy.
 
 ## More examples
 
@@ -236,7 +321,7 @@ test you need. Review the map as carefully as the code it describes.
 ### The policy describes your test inventory
 
 The **policy** tells Test Sieve where to find all your tests and how to read the
-map. In the script above:
+map. The Rails adapter supplies defaults that you can override:
 
 - `test_pattern` finds the full inventory.
 - `system_pattern` identifies its system tests.
@@ -247,9 +332,9 @@ map. In the script above:
 
 ### The comparison identifies the change
 
-With `comparison: "pr"`, Test Sieve compares the merge base of the supplied
-revisions with the head revision. This finds the changes introduced by a branch.
-Use `comparison: "push"` to compare the two supplied commits directly instead.
+By default, Test Sieve compares the merge base of `--base` and `--head` with the
+head revision. This finds the changes introduced by a branch. `--head` defaults
+to `HEAD`. Use `--comparison push` to compare the supplied commits directly.
 
 ### Full runs and errors need different handling
 
@@ -269,10 +354,13 @@ faster pipeline.
 Use Test Sieve when your suite is slow, you can identify meaningful boundaries
 between features, and you control the scripts that run your tests.
 
-The gem provides selection and verification logic. It does **not** include a
-ready-made CLI, Rails integration, GitHub Action, test runner, or framework
-reporter. You write a small adapter for your project. There is no dependency on
-Rails or Minitest at runtime.
+The gem includes selection commands, a Rails runner adapter, and optional
+Minitest reporters. It does not include a hosted service or GitHub Action.
+Your project owns its coverage map, CI approval rules, and artifact uploads.
+
+The core Ruby API works without Rails or Minitest. The Minitest adapter uses the
+Minitest installed by your app; load it only in tests. Other frameworks can use
+the selection API and their own runner.
 
 ## Parallel runs and execution verification
 
