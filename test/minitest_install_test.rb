@@ -156,7 +156,7 @@ class MinitestInstallTest < Minitest::Test
 
   private
 
-  def run_suite(install:, body: nil, extra: "", version: Minitest::VERSION, env: {})
+  def run_suite(install:, body: nil, extra: "", version: Gem.loaded_specs.fetch("minitest").version.to_s, env: {})
     body ||= <<~RUBY
       def test_pass; assert true; end
       def test_fail; flunk "failed person@example.invalid"; end
