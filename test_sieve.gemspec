@@ -5,11 +5,11 @@ Gem::Specification.new do |spec|
   spec.version = "1.0.0"
   spec.authors = [ "Ramon Tayag" ]
   spec.license = "MIT"
-  spec.summary = "Select affected tests and verify execution evidence."
-  spec.description = "Git test selection, Rails execution, Minitest reporting, shard manifests, and execution evidence verification."
+  spec.summary = "Select affected tests and report what a run covered."
+  spec.description = "Git test selection, Rails execution, Minitest reporting, shard manifests, and diagnostic comparison reports."
   spec.homepage = "https://github.com/ramontayag/test_sieve"
   spec.required_ruby_version = ">= 3.2"
-  spec.files = Dir["lib/**/*.rb", "exe/*", "README.md", "LICENSE.txt", "docs/**/*.md"]
+  spec.files = Dir["lib/**/*.rb", "exe/*", "README.md", "LICENSE.txt"]
   spec.bindir = "exe"
   spec.executables = [ "test-sieve" ]
   spec.require_paths = [ "lib" ]
