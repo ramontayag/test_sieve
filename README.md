@@ -362,19 +362,28 @@ The core Ruby API works without Rails or Minitest. The Minitest adapter uses the
 Minitest installed by your app; load it only in tests. Other frameworks can use
 the selection API and their own runner.
 
-## Parallel runs and execution verification
+## Parallel runs
 
 Once selection works, `TestSieve::SystemManifest` can divide the selected
-system-test files across a fixed number of jobs. `TestSieve::SystemRunGate`
-checks the resulting execution records against that manifest and the expected
-commit and run identity. Missing jobs, duplicate execution, and incomplete
-results cannot count as a complete run. Jobs assigned no files still need an
-explicit record.
+system-test files across a fixed number of jobs. The manifest binds one
+selection to one commit: it records the tested commit, the identity of the
+selection that produced it, the checksum of every selected file, and the shard
+that runs each file. A manifest that disagrees with the repository is rejected.
 
-This requires your runner to write shard records and normalized test outcomes.
-See [execution verification](docs/execution-verification.md) for the API and
-record format. The [public API tests](test/public_api_test.rb) contain a complete
-four-job example, including empty assignments and rejected evidence.
+Read each job's files from `manifest.fetch("assignments").fetch("shards")`.
+A manifest proves which bytes belong to the run. It does not prove that the
+runner executed them, and it is not permission to skip a test.
+
+The [public API tests](test/public_api_test.rb) contain a runnable four-job
+selection and assignment example, including empty assignments.
+
+## Compare what a run covered
+
+`TestSieve::Comparison` reads the recorded outcomes of a run and reports what
+each suite covered relative to the selection. It groups results into selected,
+omitted, and unowned files, attributes every result to a repository source file,
+and reports the results the comparison cannot explain. The report is evidence
+only. It does not approve selective execution.
 
 ## Contributing
 

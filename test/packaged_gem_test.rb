@@ -31,13 +31,13 @@ class PackagedGemTest < Minitest::Test
           abort "base API loaded Minitest" if defined?(Minitest)
           abort "legacy namespace loaded" if Object.const_defined?(:TestSelection) || Object.const_defined?(:TestOwnership)
           abort "wrong license" unless Gem.loaded_specs.fetch("test_sieve").license == "MIT"
-          %w[ LICENSE.txt docs/execution-verification.md ].each do |path|
+          %w[ LICENSE.txt README.md ].each do |path|
             abort "missing packaged file: " + path unless File.file?(File.join(installed, path))
           end
         RUBY
         File.write(File.join(directory, "public_api_test.rb"), script)
         output = run_command(environment, directory, RbConfig.ruby, "public_api_test.rb")
-        assert_match(/7 runs, \d+ assertions, 0 failures, 0 errors, 0 skips/, output)
+        assert_match(/4 runs, \d+ assertions, 0 failures, 0 errors, 0 skips/, output)
 
         help = run_command(environment, directory, RbConfig.ruby, File.join(home, "bin/test-sieve"), "--help")
         assert_includes help, "select"
