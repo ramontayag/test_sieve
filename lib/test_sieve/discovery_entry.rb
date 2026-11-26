@@ -16,7 +16,8 @@ module TestSieve
       end
       blob, status = Open3.capture2("git", "show", "#{@commit}:#{entry}", chdir: @root)
       raise Invalid, "cannot read discovery entry: #{entry}" unless status.success?
-      code = blob.lines.map(&:strip).reject { |line| line.empty? || line.start_with?("#") }
+      raise Invalid, "unsupported discovery entry: #{entry}" if blob.include?("\0") || !blob.valid_encoding?
+      code = blob.lines.map { |line| line.chomp.gsub(/\A[ \t]+|[ \t]+\z/, "") }.reject { |line| line.empty? || line.start_with?("#") }
       match = REQUIRE.match(code.first.to_s) if code.size == 1
       raise Invalid, "unsupported discovery entry: #{entry}" unless match
       relative = match[2].delete_suffix(".rb") + ".rb"

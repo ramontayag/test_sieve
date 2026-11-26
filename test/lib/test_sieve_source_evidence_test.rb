@@ -317,6 +317,13 @@ class TestSieveSourceEvidenceTest < Minitest::Test
     end
   end
 
+  def test_binary_entry_is_rejected_without_losing_its_target_failure
+    report = discovery_report(body: "require_relative 'unit_test'\x00\n")
+    assert_includes report["reasons"], "unit/unavailable: unsupported discovery entry: test/model_test.rb"
+    assert_empty report["discovery_entries"]
+    assert_equal "fail", report.dig("results", "unit", "selected").first.fetch("outcome")
+  end
+
   private
     def discovery_report(entries: ["test/model_test.rb"], source: "test/unit_test.rb", body: "# Model discovery\nrequire_relative 'unit_test'\n")
       write("test/model_test.rb", body)

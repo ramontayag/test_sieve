@@ -182,13 +182,15 @@ command with `TEST_SUITE_NAME=unit` and the output variables shown above.
 
 If `test/models/question_test.rb` only requires a package test, keep **both**
 paths in the test inventory. Pass `discovery_entries: ["test/models/question_test.rb"]`
-to `install!` for the suite that discovers it. The outcome reporter lists that
-entry at run end only when Ruby has required it. The comparison checks that the
+to `install!` for the suite that discovers it. At run end the outcome reporter
+checks whether Ruby's `$LOADED_FEATURES` contains the absolute path of that
+entry in the reporter's process. The comparison checks that the
 committed entry contains only a literal `require_relative` (plus comments and
 blank lines) and that its target produced a result in the same suite and shard.
 The report lists the entry under `discovery_entries`; its target keeps its own
-test IDs, outcomes and timing. This says the entry was loaded, not that it was
-the first code to require the target. Direct package runs and old recordings
+test IDs, outcomes and timing. This does not identify the command that loaded
+the entry or prove that the entry caused a test to run. Direct package runs
+that did not load the entry and old recordings
 without loader evidence cannot establish full discovery.
 
 ## Configure the adapter
