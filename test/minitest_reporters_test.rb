@@ -57,6 +57,24 @@ class MinitestReportersTest < Minitest::Test
     assert_equal ["/source/test.rb:42"], record["backtrace"]
   end
 
+  def test_only_successfully_required_discovery_entries_are_observed
+    target = File.join(@root, "package_test.rb")
+    entry = File.join(@root, "model_test.rb")
+    File.write(target, "")
+    File.write(entry, "require_relative 'package_test'")
+    reporter = TestSieve::Minitest::OutcomeReporter.new(output_path: @path, root: @root,
+      metadata: @metadata, discovery_entries: ["model_test.rb"])
+    require target
+    reporter.report
+    assert_empty outcome_records.last.fetch("loaded_discovery_entries")
+    require entry
+    reporter.report
+    assert_equal ["model_test.rb"], outcome_records.last.fetch("loaded_discovery_entries")
+  ensure
+    $LOADED_FEATURES.delete(entry)
+    $LOADED_FEATURES.delete(target)
+  end
+
   def test_interruption_marks_run_incomplete_without_losing_flushed_results
     reporter = outcome_reporter
     reporter.start

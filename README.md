@@ -180,6 +180,17 @@ separate. Without explicit paths, you can run both suites with
 For plain Minitest without Rails, install the same reporter and run your usual
 command with `TEST_SUITE_NAME=unit` and the output variables shown above.
 
+If `test/models/question_test.rb` only requires a package test, keep **both**
+paths in the test inventory. Pass `discovery_entries: ["test/models/question_test.rb"]`
+to `install!` for the suite that discovers it. The outcome reporter lists that
+entry at run end only when Ruby has required it. The comparison checks that the
+committed entry contains only a literal `require_relative` (plus comments and
+blank lines) and that its target produced a result in the same suite and shard.
+The report lists the entry under `discovery_entries`; its target keeps its own
+test IDs, outcomes and timing. This says the entry was loaded, not that it was
+the first code to require the target. Direct package runs and old recordings
+without loader evidence cannot establish full discovery.
+
 ## Configure the adapter
 
 The default Rails layout needs no Ruby configuration. For different test paths

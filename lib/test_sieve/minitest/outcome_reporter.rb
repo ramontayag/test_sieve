@@ -10,10 +10,11 @@ module TestSieve
     class OutcomeReporter < ::Minitest::AbstractReporter
       attr_reader :output_path
 
-      def initialize(output_path:, root: Dir.pwd, app_root: nil, metadata: nil)
+      def initialize(output_path:, root: Dir.pwd, app_root: nil, metadata: nil, discovery_entries: [])
         super()
         @output_path = output_path
         @root = File.expand_path(app_root || root)
+        @discovery_entries = discovery_entries
         @writer = Telemetry::Writer.new(output_path: output_path)
         @metadata = metadata || Telemetry::Metadata.new(app_root: @root)
         @execution_index = 0
@@ -65,6 +66,11 @@ module TestSieve
         }
         payload["completed"] = completed unless completed.nil?
         payload["interrupted"] = interrupted unless interrupted.nil?
+        if type == "run_end" && !@discovery_entries.empty?
+          payload["loaded_discovery_entries"] = @discovery_entries.select do |path|
+            $LOADED_FEATURES.include?(File.join(@root, path))
+          end
+        end
         payload.merge!(result_payload(result)) if result
         @writer.append(payload)
       end
