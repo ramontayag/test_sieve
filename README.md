@@ -193,6 +193,44 @@ the entry or prove that the entry caused a test to run. Direct package runs
 that did not load the entry and old recordings
 without loader evidence cannot establish full discovery.
 
+### Record which tests call a Ruby rule
+
+On a full, single-process, single-worker Minitest run, enable a separate
+report to investigate an ownership map. For example, to see who calls your
+shipping rule, add this to your test helper:
+
+```ruby
+if (output = ENV["TEST_CALLS_OUTPUT"])
+  require "test_sieve/minitest/serial_calls"
+  TestSieve::Minitest::SerialCalls.install!(
+    output: output, root: Dir.pwd, commit: ENV["GITHUB_SHA"],
+    workers: ENV["PARALLEL_WORKERS"],
+    targets: -> { [Shipping.instance_method(:cost)] }
+  )
+end
+```
+
+Create the output directory first. Use a **new file for each invocation**.
+Upload that file even on test failure, under the checked-out commit SHA, run
+ID, attempt and suite. Keep its upload optional. The report contains test IDs,
+relative target filenames and runtime identifiers. It does not read method
+arguments or save source, exception messages, or environment variables.
+
+Each `call` row means one of the explicitly watched Ruby methods in `file`
+ran. Only the runner thread receives a `test_id`. `phase: body` separates the
+test itself from setup and teardown (`lifecycle`). Server threads, background
+threads and execution between tests have `test_id: null` and `phase: unknown`.
+The same filename can contain other methods that were never called.
+
+Treat a missing/unreadable file, missing `end`, any `unsupported` row, unmatched
+test windows, or disagreement with the ordinary outcome inventory as **partial
+or unavailable evidence**. An `end` row only closes the observer; it does not
+certify that all tests ran. Never combine parallel workers or shards as a
+serial run. Forks and external processes are not traced reliably. Use explicit
+Ruby methods, not native methods or template line numbers. JS, CSS, database
+effects, boot, and unexecuted branches remain outside the report. Missing
+observations never justify skipping tests or deleting a map entry.
+
 ## Configure the adapter
 
 The default Rails layout needs no Ruby configuration. For different test paths
