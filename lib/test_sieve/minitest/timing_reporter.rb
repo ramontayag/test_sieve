@@ -3,11 +3,13 @@
 require "minitest"
 require "fileutils"
 require "json"
+require_relative "result_location"
 require_relative "../telemetry/metadata"
 
 module TestSieve
   module Minitest
     class TimingReporter < ::Minitest::AbstractReporter
+      include ResultLocation
       attr_reader :output_path, :suite_name, :root
 
       alias app_root root
@@ -53,12 +55,10 @@ module TestSieve
       end
 
       def build_test_entry(result)
-        file, line = result.source_location
         {
           "class_name" => result.klass,
           "test_name" => result.name,
-          "file" => relative_path(file),
-          "line" => line,
+          **result_location(result),
           "duration_seconds" => result.time
         }
       end

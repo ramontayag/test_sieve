@@ -42,6 +42,7 @@ module TestSieve
       end
       @configuration = {outcome_output: outcome_output, timing_output: timing_output, suite: suite, root: root, metadata: metadata, discovery_entries: discovery_entries}
       return unless outcome_output || timing_output
+      ShouldaDeclarations.install
       return if @registered
 
       ::Minitest.register_plugin(self)

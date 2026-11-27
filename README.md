@@ -172,6 +172,12 @@ survive a later crash. Timings list tests slowest first. GitHub Actions run,
 attempt, and repository metadata are included when its environment variables
 are present; nothing is uploaded automatically.
 
+If you use `shoulda-context` 2.0.0, require it before calling `install!`,
+and call `install!` before loading your tests. For `should matcher` tests,
+outcomes and timings then report the declaration in `file` and `line`.
+`source_file` and `source_line` keep Minitest's original method location.
+Without a verified declaration, both reports keep Minitest's location.
+
 Use a fresh outcomes path for each run: the JSONL file is append-only. Use
 separate paths for unit and system runs so their identities and timings stay
 separate. Without explicit paths, you can run both suites with

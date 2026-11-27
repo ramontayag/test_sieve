@@ -2,12 +2,14 @@
 
 require "minitest"
 require "time"
+require_relative "result_location"
 require_relative "../telemetry/metadata"
 require_relative "../telemetry/writer"
 
 module TestSieve
   module Minitest
     class OutcomeReporter < ::Minitest::AbstractReporter
+      include ResultLocation
       attr_reader :output_path
 
       def initialize(output_path:, root: Dir.pwd, app_root: nil, metadata: nil, discovery_entries: [])
@@ -76,13 +78,11 @@ module TestSieve
       end
 
       def result_payload(result)
-        file, line = result.source_location
         payload = {
           "test_id" => "#{result.klass}##{result.name}",
           "test_class" => result.klass,
           "test_name" => result.name,
-          "file" => relative_path(file),
-          "line" => line,
+          **result_location(result),
           "execution_index" => @execution_index,
           "outcome" => outcome_for(result),
           "duration_seconds" => result.time

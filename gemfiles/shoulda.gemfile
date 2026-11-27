@@ -1,0 +1,7 @@
+source "https://rubygems.org"
+
+gemspec path: ".."
+gem "minitest", "~> 6.1"
+gem "shoulda-context", "2.0.0"
+gem "shoulda-matchers", "~> 8.0"
+gem "activemodel", "~> 8.1"

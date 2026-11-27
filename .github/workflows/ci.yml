@@ -6,6 +6,18 @@ permissions:
   contents: read
 
 jobs:
+  shoulda:
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_GEMFILE: gemfiles/shoulda.gemfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+      - run: bundle exec ruby test/integration/shoulda_declarations.rb
+
   test:
     runs-on: ubuntu-latest
     strategy:
