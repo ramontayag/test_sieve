@@ -4,6 +4,8 @@ require_relative "source_attribution"
 
 module TestSieve
   class RunEvidence
+    attr_reader :loaded_discovery_entries
+
     def initialize(run:, expected:, outcomes:, policy:, record_parser:, inventory: [], allow_empty: false)
       @policy, @record_parser = policy, record_parser
       @minimum_records = allow_empty ? 2 : 3
@@ -17,6 +19,7 @@ module TestSieve
       verify_envelope(records)
       results = records[1...-1]
       verify_results(results)
+      @loaded_discovery_entries = records.last.fetch("loaded_discovery_entries", [])
       results.map { |result| result.merge("screenshot" => screenshot_evidence(result)).merge(attribution(result)) }
     end
 

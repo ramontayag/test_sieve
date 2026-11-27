@@ -4,6 +4,7 @@ require "json"
 require "digest"
 require_relative "selector"
 require_relative "run_evidence"
+require_relative "discovery_entry"
 
 module TestSieve
   class Invalid < StandardError; end
@@ -24,6 +25,7 @@ module TestSieve
       @root, @selection_path, @expected_path = root, selection, expected
       @report = { "status" => "inconclusive", "reasons" => [], "artifacts" => [],
         "results" => %w[ unit system ].to_h { |suite| [ suite, { "selected" => [], "omitted" => [], "unowned" => [] } ] },
+        "discovery_entries" => [],
         "screenshot_coverage" => "Only explicit result failure evidence is associated; other screenshot associations are unknown.",
         "limits" => "Evidence consistency only; not method-inventory completeness, selection eligibility, or failure causation." }
     end
@@ -148,7 +150,7 @@ module TestSieve
         observed = @report["results"].values.flat_map { |groups| groups.values_at("selected", "omitted").flatten }
           .select { |result| result["source"] == "owned" && result["source_suite"] == result["execution_suite"] }
           .map { |result| result["file"] }
-        missing = @inventory - observed
+        missing = @inventory - observed - @report["discovery_entries"].map { |entry| entry.fetch("file") }
         @report["reasons"] << "missing test files: #{missing.sort.join(', ')}" unless missing.empty?
       end
 
@@ -157,6 +159,7 @@ module TestSieve
         evidence = RunEvidence.new(run:, expected:, outcomes:, inventory: @inventory, policy: @policy, record_parser: @record_parser)
         records = evidence.call
         result_suite = run.fetch("result_suite", run.fetch("suite"))
+        observed = []
         records.each do |record|
           key = [ result_suite, record["test_id"] ]
           if seen[key]
@@ -168,10 +171,23 @@ module TestSieve
           record["selection_group"] = group
           @report["results"][result_suite][group] << record
           track_anomaly(record)
+          observed << record["file"] if record["source"] == "owned" && !record["cross_suite"]
         end
         compare_timings(run, evidence, records)
+        record_discovery(run, result_suite, selection.fetch("source_sha"), evidence, observed)
       rescue Invalid, JSON::ParserError, ArgumentError, KeyError, TypeError, SystemCallError => error
         @report["reasons"] << "#{run.fetch('result_suite', run.fetch('suite'))}/#{run['shard']}: #{error.message}"
+      end
+
+      def record_discovery(run, result_suite, commit, evidence, observed)
+        entries = evidence.loaded_discovery_entries
+        raise Invalid, "invalid loaded discovery entries" unless entries.is_a?(Array) && entries.uniq == entries
+        checker = DiscoveryEntry.new(root: @root, commit: commit, inventory: @inventory, policy: @policy, suite: result_suite)
+        entries.each do |entry|
+          target = checker.target(entry)
+          raise Invalid, "missing discovery target result: #{target}" unless observed.include?(target)
+          @report["discovery_entries"] << { "file" => entry, "target" => target, "suite" => result_suite, "shard" => run.fetch("shard") }
+        end
       end
 
       # Rejected duplicates retain failure evidence but cannot establish coverage.

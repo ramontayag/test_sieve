@@ -280,7 +280,60 @@ class TestSieveSourceEvidenceTest < Minitest::Test
       report.fetch("reasons").inspect
   end
 
+  def test_discovery_entry_is_separate_from_its_required_source_result
+    report = discovery_report
+    assert_equal "complete", report["status"], report["reasons"].inspect
+    assert_equal [{ "file" => "test/model_test.rb", "target" => "test/unit_test.rb",
+      "suite" => "unit", "shard" => "unavailable" }], report["discovery_entries"]
+    results = report.dig("results", "unit", "selected")
+    assert_equal 1, results.size
+    result = results.first
+    assert_equal "UnitTest#test_unit", result["test_id"]
+    assert_equal "fail", result["outcome"]
+  end
+
+  def test_matching_package_result_without_loaded_entry_is_incomplete
+    report = discovery_report(entries: [])
+    assert_includes report["reasons"], "missing test files: test/model_test.rb"
+  end
+
+  def test_loaded_entry_does_not_cover_a_missing_source_or_a_mixed_file
+    report = discovery_report(source: "test/other_test.rb")
+    assert_equal "inconclusive", report["status"]
+    assert report["reasons"].join.include?("test/unit_test.rb")
+    assert_empty report["discovery_entries"]
+
+    report = discovery_report(body: "require_relative 'unit_test'\nraise 'extra code'\n")
+    assert_includes report["reasons"], "unit/unavailable: unsupported discovery entry: test/model_test.rb"
+    assert_equal "fail", report.dig("results", "unit", "selected").first["outcome"]
+  end
+
+  def test_unknown_or_wrong_suite_entry_is_inconclusive
+    %w[test/unknown_test.rb test/system/system_test.rb].each do |entry|
+      report = discovery_report(entries: [entry])
+      assert_equal "inconclusive", report["status"]
+      assert_empty report["discovery_entries"]
+      assert_includes report["reasons"].join, entry
+    end
+  end
+
+  def test_binary_entry_is_rejected_without_losing_its_target_failure
+    report = discovery_report(body: "require_relative 'unit_test'\x00\n")
+    assert_includes report["reasons"], "unit/unavailable: unsupported discovery entry: test/model_test.rb"
+    assert_empty report["discovery_entries"]
+    assert_equal "fail", report.dig("results", "unit", "selected").first.fetch("outcome")
+  end
+
   private
+    def discovery_report(entries: ["test/model_test.rb"], source: "test/unit_test.rb", body: "# Model discovery\nrequire_relative 'unit_test'\n")
+      write("test/model_test.rb", body)
+      write(source, "")
+      @head = commit if !git("status", "--porcelain").empty?
+      @entries = entries
+      failure = outcome(source, "UnitTest", "test_unit", "unit", result: "fail")
+        .merge("error_class" => "Assertion", "error_message" => "Expected C", "backtrace" => [])
+      compare_with(unit: [failure], system: [outcome("test/system/system_test.rb", "SystemTest", "test_system", "system")])
+    end
     def compare_with(unit:, system:, missing_timing: nil, timing_file_override: {})
       selection = write_selection
       shards = system_shards(system)
@@ -342,7 +395,9 @@ class TestSieveSourceEvidenceTest < Minitest::Test
       FileUtils.mkdir_p(File.dirname(path))
       lines = [ JSON.generate(envelope_record(prefix, "run_start")) ]
       records.each_with_index { |entry, index| lines << JSON.generate(outcome_record(prefix, entry, index + 1)) }
-      lines << JSON.generate(envelope_record(prefix, "run_end").merge("completed" => true, "interrupted" => false))
+      ending = envelope_record(prefix, "run_end").merge("completed" => true, "interrupted" => false)
+      ending["loaded_discovery_entries"] = @entries if prefix == "unit" && @entries
+      lines << JSON.generate(ending)
       File.write(path, lines.join("\n") + "\n")
     end
 

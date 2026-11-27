@@ -36,11 +36,11 @@ module TestSieve
     end
     private_constant :InterruptTracking
 
-    def self.install!(outcome_output: nil, timing_output: nil, suite: nil, root: Dir.pwd, metadata: nil)
+    def self.install!(outcome_output: nil, timing_output: nil, suite: nil, root: Dir.pwd, metadata: nil, discovery_entries: [])
       if outcome_output && timing_output && same_destination?(outcome_output, timing_output)
         raise ArgumentError, "outcomes and timings must use different files"
       end
-      @configuration = {outcome_output: outcome_output, timing_output: timing_output, suite: suite, root: root, metadata: metadata}
+      @configuration = {outcome_output: outcome_output, timing_output: timing_output, suite: suite, root: root, metadata: metadata, discovery_entries: discovery_entries}
       return unless outcome_output || timing_output
       return if @registered
 
@@ -57,7 +57,8 @@ module TestSieve
       metadata ||= Telemetry::Metadata.new(app_root: root, env: env)
       @outcome_reporter = nil
       if outcome_output
-        @outcome_reporter = OutcomeReporter.new(output_path: outcome_output, root: root, metadata: metadata)
+        @outcome_reporter = OutcomeReporter.new(output_path: outcome_output, root: root, metadata: metadata,
+          discovery_entries: @configuration.fetch(:discovery_entries))
         ::Minitest.reporter << @outcome_reporter
         ::Minitest.singleton_class.prepend(InterruptTracking) unless ::Minitest.singleton_class < InterruptTracking
       end

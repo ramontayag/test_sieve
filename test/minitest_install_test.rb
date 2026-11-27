@@ -41,6 +41,30 @@ class MinitestInstallTest < Minitest::Test
     assert_equal ["suite.rb"], Dir.children(@root)
   end
 
+  def test_direct_package_and_discovery_processes_keep_the_same_test_identity
+    FileUtils.mkdir_p(File.join(@root, "test/models"))
+    FileUtils.mkdir_p(File.join(@root, "packages"))
+    entry = "test/models/question_test.rb"
+    target = "packages/question_test.rb"
+    File.write(File.join(@root, entry), "require_relative '../../packages/question_test'")
+    File.write(File.join(@root, target), <<~RUBY)
+      class QuestionTest < Minitest::Test
+        def test_saved_answer; assert_equal "C", "c".upcase; end
+      end
+    RUBY
+    { "Dir.glob('test/**/*_test.rb').each { |f| require File.expand_path(f) }" => [entry],
+      "require_relative 'packages/question_test'" => [] }.each_with_index do |(load_tests, entries), index|
+      path = File.join(@root, "outcomes-#{index}.jsonl")
+      output, status = run_suite(install: "outcome_output: #{path.inspect}, discovery_entries: [#{entry.inspect}]",
+        extra: load_tests, body: "")
+      assert status.success?, output
+      records = File.readlines(path).map { |line| JSON.parse(line) }
+      assert_equal %w[run_start test_result run_end], records.map { |r| r.fetch("type") }
+      assert_equal ["QuestionTest#test_saved_answer", target, "pass"], records[1].values_at("test_id", "file", "outcome")
+      assert_equal entries, records.last.fetch("loaded_discovery_entries")
+    end
+  end
+
   def test_each_output_is_independently_optional
     [[:outcome_output, @outcomes], [:timing_output, @timings]].each do |key, path|
       output, status = run_suite(install: "#{key}: #{path.inspect}, root: #{@root.inspect}", body: "def test_pass; assert true; end")
